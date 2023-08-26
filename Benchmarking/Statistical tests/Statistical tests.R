@@ -1419,7 +1419,7 @@ shapiro.test(all_calinski)
 
 library(e1071)
 library(moments)
-library(tse)
+library(tseries)
 install.packages('tseries')
 
 jarque.bera.test(all_calinski)
@@ -1777,18 +1777,111 @@ group22 <- na.omit(data[22,])
 rownames(data)
 data_column <- na.omit(data[,i])
 
-group_data <- list(group22, group9, group10, group5, group12, group18, group17, group8, group6, group13, group11, group21, group1, group2, group19, group4, group15, group7, group14, group16, group20, group3)
-                   
+group_data <- list(group1, group2, group3, group4, group5, group6, group7, group8, group9, group10, group11, group12, group13, group14, group15, group16, group17, group18, group19, group20, group21, group22)
+
+transposed_df <- t(data)                
 par(las = 2)  
-boxplot(transposed_df, col = "#c5dcf2", names = rep("", length(transposed_df[1,])))
+boxplot(transposed_df, col = "#c5dcf2", names = rep("", length(group_data)))
+colnames(transposed_df)
 
-transposed_df <- t(data)
+mean(na.omit(transposed_df[,10]))
 
 
+as.numeric(data[1,])
+
+rownames(data[1,])
+
+categorized_data <- data.frame(group=rownames(data[1,]),value=as.numeric(data[1,]))
+
+# Loop that iterates 22 times
+for (i in 2:22) {
+  categorized_data <- data.frame(group=rownames(data[i,]),value=as.numeric(data[i,])) %>%
+    rbind(categorized_data,.)
+}
+
+
+data[1,] %>%
+  length()
+
+library(ggplot2)
+
+
+# Create a boxplot with multiple boxes
+gg <- ggplot(categorized_data, aes(x = group, y = value, fill = group)) +
+  geom_boxplot()
+
+# Customize the appearance
+gg <- ggplot(categorized_data, aes(x = group, y = value, fill = group)) +
+  geom_boxplot() +
+  theme_void() +
+  theme(axis.ticks.length = unit(.15, "cm"), 
+        axis.ticks = element_line(linewidth = 0.5), 
+        axis.text = element_text(size = 16, color = "black", family = "Arial"),
+        panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.5),
+        legend.position = "none") +
+  labs(title = NULL, x = NULL, y = NULL) +
+  scale_fill_manual(values = rep("#c5dcf2", times=22)) +
+  theme(axis.text.x = element_blank()) 
+
+# Print the plot
+print(gg)
+
+group_means <- aggregate(value ~ group, data = categorized_data, mean)
+
+# Reorder levels of the 'group' factor based on means
+categorized_data$group <- factor(categorized_data$group, 
+                                 levels = group_means$group[order(group_means$value, decreasing = TRUE)])
+
+# Create a boxplot with boxes ordered by mean
+gg <- ggplot(categorized_data, aes(x = group, y = value, fill = group)) +
+  geom_boxplot() +
+  theme_minimal()
+
+# Print the plot
+print(gg)
+
+
+
+
+
+
+
+
+
+
+
+library(ggplot2)
+
+# Create a sample dataframe
+categorized_data <- data.frame(
+  group = rep(letters[1:3], each = 30),
+  value = c(rnorm(30), rnorm(30, mean = 2), rnorm(30, mean = 3))
+)
+
+# Create a boxplot with multiple boxes
+gg <- ggplot(categorized_data, aes(x = group, y = value, fill = group)) +
+  geom_boxplot() +
+  theme_void() +  # Remove plot background and labels
+  scale_fill_manual(values = c("#c5dcf2", "#c5dcf2", "#c5dcf2"))  # Set all boxes to light blue
+
+# Print the plot
+print(gg)
+
+
+
+
+     
+     
+     
+     
+     
+     
+     
+     
 column_means <- c()
 
 for (i in 1:22) {
-  column_means <- c(column_means, mean(na.omit(transposed_df[,i]) )  
+  column_means <- c(column_means, mean(na.omit(transposed_df[,i]) ))  
 }
 
 # Get the indices of columns sorted by means in descending order
@@ -1798,3 +1891,120 @@ rearranged_df <- transposed_df[, sorted_indices]
 
 boxplot(rearranged_df, col = "#c5dcf2", names = rep("", length(transposed_df[1,])))
 
+data <- read_excel("z_norm_values.xlsx", sheet = "z_norm_values")
+
+data <- as.data.frame(data)
+
+rownames(data) <- data[,1]
+
+data <- data[,2:33]
+
+library(dplyr)
+
+adjusted_rand_columns <- data %>%
+  select(contains("Adjusted Rand index"))
+
+adjusted_rand_columns <- adjusted_rand_columns[1:5]
+adjusted_rand_columns <- na.omit(adjusted_rand_columns)
+library(ggplot2)
+adjusted_rand_columns[,1] %>%
+  length()
+
+# Create example data
+x <- 1:12
+y1 <- adjusted_rand_columns[,1]
+y2 <- adjusted_rand_columns[,2]
+y3 <- adjusted_rand_columns[,3]
+y4 <- adjusted_rand_columns[,4]
+y5 <- adjusted_rand_columns[,5]
+
+# Combine data into a data frame
+df <- data.frame(x = rep(x, 5),
+                 y = c(y1, y2, y3, y4, y5),
+                 group = rep(c("HIV", "Buettner", "Mair", "Campbell", "Richard"), each = length(x)))
+
+# Create the overlapping line plot using ggplot2
+p <- ggplot(df, aes(x, y, color = group)) +
+  geom_line() +
+  labs(x = "X", y = "Y", title = "Overlapping Line Plots") +
+  theme_minimal()
+
+# Print the plot
+print(p)
+
+
+library(ggplot2)
+
+# Create example data
+x <- c(1, 2, 3, NA, 5, 6, 7)
+y <- c(2, 3, 5, NA, 4, 6, 8)
+
+# Combine data into a data frame
+df <- data.frame(x = x, y = y)
+
+# Create the interrupted line plot with connection using ggplot2
+p <- ggplot(df, aes(x, y)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "X", y = "Y", title = "Interrupted Line Plot with Connection") +
+  theme_minimal()
+
+# Print the plot
+print(p)
+
+data <- read_excel("z_norm_values.xlsx", sheet = "var_dist_methods_comparison")
+
+data <- as.data.frame(data)
+
+rownames(data) <- data[,1]
+
+data <- data[,2:33]
+
+library(dplyr)
+
+var_methods_norm_metrics <- numeric()
+disp_methods_norm_metrics <- numeric()
+
+
+for (i in 1:12) {
+  var_methods_norm_metrics <- c(var_methods_norm_metrics, na.omit(as.numeric(data[i,])))
+}
+
+for (i in 13:22) {
+  disp_methods_norm_metrics <- c(disp_methods_norm_metrics, na.omit(as.numeric(data[i,])))
+}
+
+na.omit(as.numeric(data[22,]))
+
+
+shapiro.test(var_methods_norm_metrics)
+
+var_methods_norm_metrics <- data.frame(
+  values = var_methods_norm_metrics,
+  groups = rep(c("var"))
+)
+
+disp_methods_norm_metrics <- data.frame(
+  values = disp_methods_norm_metrics,
+  groups = rep(c("dist"))
+)
+
+data <- rbind(var_methods_norm_metrics, disp_methods_norm_metrics)
+
+leveneTest(values ~ groups, data = data)
+
+# Varience is not homogenous, couldn't perform tests
+
+all_methods_not_SCHS_norm_metrics <- c()
+
+for (i in c(1:12, 14:22)) {
+  all_methods_not_SCHS_norm_metrics <- c(all_methods_not_SCHS_norm_metrics, na.omit(as.numeric(data[i,])))
+}
+
+shapiro.test(all_methods_not_SCHS_norm_metrics)
+
+jarque.bera.test(all_methods_not_SCHS_norm_metrics)
+
+differences <- all_methods_not_SCHS_norm_metrics - mean(all_methods_not_SCHS_norm_metrics)
+
+skewness.test(differences)

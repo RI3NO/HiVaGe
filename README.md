@@ -4,11 +4,11 @@
 
 The repository contains the following:
 
-- **EEBG folder:** Benchmarking of 5 tools for identifying highly variable genes (HVGs) on the Mair dataset.
+- **"EEBG" folder:** Benchmarking of 5 tools for HVGs on the Mair dataset.
 
-- **Benchmarking folder:** Benchmarking of X tools for HVGs identification on X datasets.
+- **"Evaluation" folder:** Code that was used in and plots that were generated while writing an article "Scrutinised and Compared: HVG Identification Methods in Terms of Common Metrics", where there was evaluated 22 methods for HVG identification on 5 diverse datasets.
 
-Descriptions of all files are available.
+READMEs for all directories are available.
 
 
 
