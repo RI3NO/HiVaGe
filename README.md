@@ -1,6 +1,6 @@
 # HiVaGe
 
-**HiVaGe** is a utility designed in R to assess the performance of various tools on a given dataset in detecting highly variable genes (HVGs) in single-cell RNA sequencing (scRNA-seq) data.
+**HiVaGe** - designing a framework to assess the performance of various tools in detecting highly variable genes (HVGs) in diverse datasets of single-cell RNA sequencing (scRNA-seq) data in R .
 
 The repository contains the following:
 
