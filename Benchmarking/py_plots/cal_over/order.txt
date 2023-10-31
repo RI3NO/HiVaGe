@@ -1,0 +1,9 @@
+list_Mair: ['M3Drop', 'M3Drop_Basic', 'M3Drop_Brennecke', 'ROGUE', 'ROGUE_n', 'Seurat_vst', 'Seurat_sct', 'Seurat_disp', 'SCHS', 'scmap', 'SIEVE_ROGUE', 'SIEVE_Seurat_vst', 'SIEVE_Seurat_disp', 'scLVM_counts', 'scLVM_log', 'scLVM_logvar', 'scanpy_seurat', 'scanpy_cell_ranger', 'scanpy_Pearson', 'scanpy_seurat_v3']
+
+list_Richard: ['M3Drop', 'M3Drop_Basic', 'ROGUE', 'ROGUE_n', 'Seurat_vst', 'Seurat_sct', 'Seurat_disp', 'SCHS', 'SIEVE_ROGUE', 'scanpy_Pearson', 'scanpy_seurat', 'scmap', 'SIEVE_M3Drop', 'SIEVE_Seurat_vst', 'SIEVE_Seurat_disp', 'M3Drop_Brennecke_ERCCs', 'scLVM_logvar_ERCCs', 'scLVM_counts', 'scLVM_log', 'scLVM_logvar']
+
+list_Campbell: ['M3Drop', 'M3Drop_Basic', 'ROGUE', 'ROGUE_n', 'Seurat_vst', 'Seurat_sct', 'Seurat_disp', 'SCHS', 'scmap', 'SIEVE_ROGUE', 'SIEVE_Seurat_vst', 'SIEVE_Seurat_disp', 'scLVM_log', 'scLVM_logvar', 'scanpy_seurat', 'scanpy_cell_ranger', 'scanpy_Pearson']
+
+list_Buettner: ['M3Drop', 'M3Drop_Basic', 'M3Drop_Brennecke', 'ROGUE', 'ROGUE_n', 'Seurat_vst', 'Seurat_sct', 'Seurat_disp', 'SCHS', 'scmap', 'SIEVE_ROGUE', 'SIEVE_Seurat_vst', 'SIEVE_Seurat_disp', 'scLVM_counts', 'scLVM_log', 'scLVM_logvar', 'scanpy_seurat', 'scanpy_cell_ranger', 'scanpy_Pearson', 'scanpy_seurat_v3']
+
+list_HIV: ['M3Drop', 'M3Drop_Basic', 'M3Drop_Brennecke', 'ROGUE', 'ROGUE_n', 'Seurat_vst', 'Seurat_sct', 'Seurat_disp', 'scVEGs', 'SCHS', 'scmap', 'SIEVE_ROGUE', 'SIEVE_M3Drop', 'SIEVE_Seurat_vst', 'SIEVE_Seurat_disp', 'scLVM_log', 'scanpy_seurat', 'scanpy_Pearson']

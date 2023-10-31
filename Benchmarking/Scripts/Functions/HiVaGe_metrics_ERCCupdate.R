@@ -23,7 +23,6 @@ library(tibble)
 library(ROGUE)
 
 ### Set-up libraries for HVGs
-#setwd("C:/Users/redegator/PycharmProjects/HiVaGe/HiVaGe/example")
 library(reticulate)
 source_python("HiVaGePY.py")
 
@@ -36,7 +35,7 @@ library(SIEVE)
 library(scLVM)
 library(tictoc)
 
-## Message printing function
+## Message printing function for outputting progress
 replaceCat <- function(x, width = 50)
 {
   cat("\r",rep(" ", times = width - length(x)), "\r")
@@ -44,17 +43,26 @@ replaceCat <- function(x, width = 50)
 }
 
 
-### Dependency with mean expression testing
+### Testing the dependency with the mean expression
+# hvgs - vector containing HVGs
+# sce_object - SigleCellExperiment object
+# batching=1 - vector containing batches' number for each cell. doesn't impact the result if not set
+# amount_of_genes_to_check=length(hvgs) - the amount of highly expressed genes to check the overlap of HVGs with. if not set, equals the length of hvgs vector
 getOverlapWithHighLowExpressed <- function(hvgs, sce_object, batching = 1, amount_of_genes_to_check = length(hvgs)) {
+  # Processing batching input
   batches = levels(factor(batching))
+  # Calculation of pseudobulk expression data
   pseudo_bulk = matrix(nrow = length(rownames(sce_object)), ncol = length(batches))
   colnames(pseudo_bulk) = batches
   for (i in batches) {
     pseudo_bulk[,i] = apply(counts(sce_object[, batching == i]), 1, sum)
   }
+  # Normalization between different batches
   pseudo_bulk = normalizeCounts(pseudo_bulk)
+  # Vector of average explassion of the genes
   avr_expr = apply(pseudo_bulk, 1, mean)
   names(avr_expr) = rownames(counts(sce_object))
+  # Sorting vector's values from highest expression to lowest
   avr_expr = sort(avr_expr, decreasing = TRUE)
   
   # Get the set amount of highly/lowly expressed genes to test overlap
@@ -64,20 +72,28 @@ getOverlapWithHighLowExpressed <- function(hvgs, sce_object, batching = 1, amoun
   # Calculate and return overlap
   overlap_h = table(unique(c(hvgs)) %in% hegs)
   overlap_l = table(unique(c(hvgs)) %in% legs)
-  
+
+  # Calculate general correlation between gene expression varience and the mean
   expr_var_cor = cor(log(apply(counts(sce_object), 1, mean)), log(apply(counts(sce_object), 1, var)), method = "pearson")
+
+  # Return list containing overlap with highly expressed genes, lowly expressed genes and correaltion mean~variance for the dataset.
   return(list(highly_overlap = unname(overlap_h["TRUE"]/sum(overlap_h)), lowly_overlap = unname(overlap_l["TRUE"]/sum(overlap_l)), correlation_meanVariance = expr_var_cor))
 }
 
 
 ### Purity testing
+## Function for calculatioon of purity in accordance with its math formula 
+# clusters - vector containing cluster's number for each cell
+# classes - vector containing cell type for each cell
 calcPurity = function(clusters, classes) {
-  # Just the purity math formula
   sum(apply(table(classes, clusters), 1, max))/length(clusters)
 }
 
+## Function for calculating average purity
 getAvrPurity = function(hvgs, sce_object, labels, tSNE_count = 5) {
+  # Setting seed for consistent clustering
   set.seed(42)
+  # Outputting information about the running function
   replaceCat(paste("Chosen t-SNE count:", tSNE_count, ".\n", sep = ""))
   # Retrieve relevant data
   sce_logcounts = logcounts(sce_object)
@@ -90,13 +106,17 @@ getAvrPurity = function(hvgs, sce_object, labels, tSNE_count = 5) {
   sce_logcounts_genes$CellType = labels
   # Removing duplicates (ignoring the CellType column)
   sce_logcounts_genes = sce_logcounts_genes[!duplicated(subset(sce_logcounts_genes, select=-c(CellType))), ]
-  
+
+  # Disallowing for division by 0 further down the line
   if (nrow(sce_logcounts_genes) > 3) {
+    
+    # Fix the perplexity with accordance to amount of genes
     moving_perplexity = floor((nrow(sce_logcounts_genes) - 2) / 3)
     if (moving_perplexity > 50) {
       moving_perplexity = 50
     }
 
+    # Repeat tSNE the required set of times
     for (i in 1:tSNE_count) {
       replaceCat(paste("Running t-SNE #", i, "...", sep = ""))
       # Running t-SNE (with the library from the paper) on expression data
@@ -122,6 +142,13 @@ getAvrPurity = function(hvgs, sce_object, labels, tSNE_count = 5) {
 
 
 ### Calculate ROGUE scores for each cluster for each sample
+# hvgs - vector containing HVGs
+# sce_object - SigleCellExperiment object
+# clustering - vector containing cluster's number for each cell
+# sampling - vector containing sample's number for each cell. doesn't impact the result if not set
+# platform - the platform ("UMI" or "full-length") used for generating the tested dataset
+# assay.type - either "counts" or "logcounts"
+# min.cell.n = 10 - minimum cell count allowed for ROGUE score calculation
 getROGUEScore <- function(hvgs, sce_object, clustering, sampling, platform, assay.type = "counts", min.cell.n = 10) {
   # Get all the cluster names
   clusters = unique(clustering)
@@ -131,11 +158,13 @@ getROGUEScore <- function(hvgs, sce_object, clustering, sampling, platform, assa
   res = matrix(nrow = length(clusters), ncol = length(samples))
   rownames(res) = clusters
   colnames(res) = samples
-  
+
+  # Print info about the running function
   replaceCat(paste("Cluster count:", length(clusters), ", sample count:", length(samples), sep = ""))
   
   for (i in 1:length(clusters)) {
     for (j in 1:length(samples)) {
+      # Print progress
       replaceCat(paste("Working with cluster: ", clusters[i], ", Sample: ", samples[j], sep = ""))
       
       # Get relevant data (cells from cluster i-th and sample j-th)
@@ -146,7 +175,7 @@ getROGUEScore <- function(hvgs, sce_object, clustering, sampling, platform, assa
       } else {
         stop("Innappropriate assay type")
       }
-      #print(paste("tmp:", tmp))
+
       # Filter out data will too little cells
       if (dim(tmp)[2] >= min.cell.n) {
         # Running the S-E model
@@ -165,7 +194,10 @@ getROGUEScore <- function(hvgs, sce_object, clustering, sampling, platform, assa
 
 
 ### Calculate correlation between HVGs
+# hvgs - vector containing HVGs
+# filtered_sce_object - SingleCellExperiment, that only has HVGs in it
 correlatedHVGs <- function(hvgs, filtered_sce_object) {
+  # Calculate correlation between paris of HVGs
   cor_genes <- correlatePairs(filtered_sce_object)
   cor_genes <- cor_genes[!is.na(cor_genes$FDR),]
   # Prepare result list
@@ -555,20 +587,15 @@ HiVaGe <- function(sce_object, flavour, batching = 1, num_HVGs = 400, ERCCs = NU
 
 
 ### Main function
-# sce_object
-# labels, vector with true cell types or reference annotated cell types
+# sce_object - SingleCellExperiment variable
+# labels - vector with types of the cells or reference-annotated cell types
 # batch, vector containing batch of each cell
 # num_HVGs = 400, num of HVGs to get
 # assay.type = c("counts" or "logcounts"), sce_object's assay to use for some metrics
 HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 400, assay.type = "counts") {
   # Methods of getting HVGs
-  #c("M3Drop","M3Drop_Basic", "M3Drop_Brennecke", "ROGUE", "ROGUE_n", "Seurat_vst", "Seurat_sct", "Seurat_disp", "scVEGs", "SCHS", "scmap", "SIEVE_Scmap", "SIEVE_Scran", "SIEVE_ROGUE", "SIEVE_M3Drop", "SIEVE_Seurat_vst", "SIEVE_Seurat_disp", "scLVM_counts", "scLVM_log", "scLVM_logvar", "BASiCS")
-  #"M3Drop","M3Drop_Basic", "M3Drop_Brennecke", 
-  #"ROGUE", "ROGUE_n", "Seurat_vst", "Seurat_sct", "Seurat_disp", "scVEGs", "SCHS", 
   R_flavours = c("M3Drop","M3Drop_Basic", "M3Drop_Brennecke", "ROGUE", "ROGUE_n", "Seurat_vst", "Seurat_sct", "Seurat_disp", "scVEGs", "SCHS", "scmap", "SIEVE_Scmap", "SIEVE_Scran", "SIEVE_ROGUE", "SIEVE_M3Drop", "SIEVE_Seurat_vst", "SIEVE_Seurat_disp", "scLVM_counts", "scLVM_log", "scLVM_logvar", "BASiCS")
-  #c('scanpy_seurat', 'scanpy_cell_ranger', 'scanpy_Pearson', 'Triku',"scanpy_seurat_v3")
-  Py_flavours = c('scanpy_seurat', 'scanpy_cell_ranger', 'scanpy_Pearson', 'Triku') #"scanpy_seurat_v3"
-  #c("M3Drop_Brennecke_ERCCs", "scLVM_log_ERCCs", "scLVM_logvar_ERCCs", "scLVM_counts_ERCCs", "BASiCS_ERCCs")
+  Py_flavours = c('scanpy_seurat', 'scanpy_cell_ranger', 'scanpy_Pearson',  "scanpy_seurat_v3", 'Triku')
   R_ERCCs_flavours <- c("M3Drop_Brennecke_ERCCs", "scLVM_log_ERCCs", "scLVM_logvar_ERCCs", "scLVM_counts_ERCCs", "BASiCS_ERCCs")
   # Full range
   valid_flavours <- c(R_flavours, Py_flavours)
@@ -587,21 +614,25 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
               "Average ROGUE score", "Purity score", "Runtime", "hvgs")
   res_df = data.frame(matrix(ncol = length(metrics))) 
   colnames(res_df) = metrics
-  
+  # Prepare list with other metrics
   other_metrics = c("rogue_score_boxplot", "hvgs_correlation")
   other_res_list = list()
   for (i in valid_flavours) {
     other_res_list[[i]] = NA
   }
-  
+
+  # Counter for metrics
   k = 1
-  
-  hvgs_folder = "Campbell"
+
+  # Name of the folder to save data for
+  hvgs_folder = "NAME"
   dir.create(paste0(hvgs_folder,"_HVGs_csv"), showWarnings = FALSE)
-  
+
+  # Loop through flavours
   for (group in names(flavour_flavours)) {
     
     if (group == "R_ERCCs_flavours"){
+      # Look for ERCCs in SingleCellExperiment
       replaceCat("Preparing ERCCs variable.. \n")
       ERCCs <- sce_object |>
         altExp() |>
@@ -620,7 +651,7 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
     }
     
     for (i in flavour_flavours[[group]]) {
-      # Prepare results variable
+      # Prepare results variable for this specific method
       res = list()
       for (j in metrics){
         res[[j]] = NA
@@ -634,7 +665,8 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
       # Get HVGs
       replaceCat(paste("Starting ", i, ".\n", sep = ""))
       replaceCat(paste("Getting HVGs (", i, ")..", sep = ""))
-      
+
+      # Calculate runtime for the method
       if (i %in% R_flavours) {
         tic()
         hvgs = HiVaGe(sce_object, i, batching = batch, num_HVGs = 400)
@@ -656,8 +688,8 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
       
       # Checking if at least 1 HVG found
       if (length(hvgs) > 1){
+        # Saving list of found HVGs
         res[["hvgs"]] = paste(hvgs, collapse = ", ")
-        write.csv(hvgs, file = file.path(paste0(hvgs_folder,"_HVGs_csv"), paste0(i, "_", hvgs_folder, "_HVGs.csv")))
         
         replaceCat("##Clustering.\n")
         set.seed(42)
@@ -678,11 +710,8 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
         clust <- cluster_louvain(g)
         # Add cluster data as a factor to "filtered" variable
         filtered$Louvain <- factor(membership(clust))
-        # filtered <- runTSNE(filtered, dimred="GLMPCA")
-        # plotTSNE(filtered, colour_by="Louvain")
         
         replaceCat("##Moving onto metrics.\n")
-        
         ### Clustering metrics
         # Get relevant data
         if (assay.type == "counts"){
@@ -720,6 +749,7 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
         }
         
         if (!is.null(batch)) {
+          # ROGUE score is prone to breaking, so it is turned off
           #replaceCat("Calculating ROGUE score..\n")
           #temp_rogue = getROGUEScore(hvgs, filtered, clustering = filtered$Louvain,
           #                           sampling = batch, platform = "full-length",
@@ -739,16 +769,18 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
         
         replaceCat("Calculating correlation between HVGs (this one takes a bit)..")
         res_other[["hvgs_correlation"]] = correlatedHVGs(hvgs, filtered)
-        
+
+        # Updating results dataframe
         res_df = rbind(res_df, res)
         k = k + 1
         row.names(res_df)[k] = i
-        
+        # Same for other metrics
         other_res_list[[i]] = res_other
-        
+
+        # Save all metrics together
         full_res = list(metrics_df = res_df, other = other_res_list)
-        saveRDS(full_res, file = "progress.rds")
-        
+        # to a temporary file in case a crash happens
+        saveRDS(full_res, file = file.path(paste0(hvgs_folder,"_HVGs_csv"), paste0(i, "_", hvgs_folder, "_backup.rds")))
         replaceCat(paste("##", i, " done.\n", sep = ""))
         
       } else {
@@ -756,22 +788,9 @@ HiVaGeMetrics <- function(sce_object, labels = NULL, batch = NULL, num_HVGs = 40
       }
     }
   }
-  
+
+  # Save all metrics together properly
   full_res = list(metrics_df = res_df[-1,], other = other_res_list)
+  # Return the list with a dataframe and a list with all metrics
   return(full_res)
 }
-
-Campbell_v1 = try(HiVaGeMetrics(Campbell_ds, labels = Campbell_ds$clust_all, batch = Campbell_ds$group, num_HVGs = 400, assay.type = "counts"))
-if(inherits(Campbell_v1, "try-error")){
-  pbPost("note", "R", "Campbell_v1 Error encountered.")
-} else {
-  pbPost("note", "R", "Campbell_v1 done!")
-}
-
-saveRDS(Campbell_v1, file = "Campbell_v1_one_12082023.rds")
-
-
-###########
-# 
-# library(RPushbullet)
-# pbSetup()

@@ -1,4 +1,4 @@
-def HiVaGePY(ds, flavour=None, percentile=None):
+def HiVaGePY(ds, flavour=None, HVGs_num=None):
     # Flavor-specific implementations
     # Dependency: pandas, anndata, scanpy, triku, numpy
 
@@ -18,8 +18,7 @@ def HiVaGePY(ds, flavour=None, percentile=None):
 
     anndata.var_names = gene_names
     anndata.obs_names = cell_names
-    gene_num = len(gene_names)
-    HVGs_num = gene_num * percentile
+
     HVGs_num = int(HVGs_num)
     if flavour == "scanpy_seurat":
         sc.pp.log1p(anndata)
